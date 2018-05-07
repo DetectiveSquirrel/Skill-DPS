@@ -1,35 +1,57 @@
-﻿using ImGuiNET;
+﻿using System;
+using System.Globalization;
+using PoeHUD.Models.Enums;
 using PoeHUD.Plugins;
-using Test_Environment.Utilities;
+using PoeHUD.Poe;
+using SharpDX;
+using SharpDX.Direct3D9;
+using Skill_DPS.Skill_Data;
 
-namespace Test_Environment.Core
+namespace Skill_DPS.Core
 {
     public class Main : BaseSettingsPlugin<Settings>
     {
-        public Main() => PluginName = "???????";
+        public Main() => PluginName = "Skill DPS";
 
         public override void Initialise() { }
 
         public override void Render()
         {
             base.Render();
-            RenderMenu();
+            Element HoverUI = GameController.Game.IngameState.UIHoverTooltip.Tooltip;
+            foreach (SkillBar.Data skill in SkillBar.CurrentSkills())
+            {
+                RectangleF box = skill.SkillElement.GetClientRect();
+                RectangleF newBox = new RectangleF(box.X, box.Y - 2, box.Width, -15);
+
+                int value = -1;
+
+                if (HoverUI.GetClientRect().Intersects(newBox) && HoverUI.IsVisibleLocal) continue;
+
+                if (skill.Skill.Stats.TryGetValue(GameStat.HundredTimesDamagePerSecond, out int @return))
+                    value = @return;
+
+                else if (skill.Skill.Stats.TryGetValue(GameStat.HundredTimesAverageDamagePerHit, out int return2))
+                    value = return2;
+
+                if (value <= 0) continue;
+
+                Graphics.DrawText(ToKMB(Convert.ToDecimal(value / (decimal) 100)),
+                        Settings.FontSize,
+                        new Vector2(newBox.Center.X, newBox.Center.Y - Settings.FontSize / 2),
+                        Settings.FontColor, FontDrawFlags.Center);
+                Graphics.DrawBox(newBox, Settings.BackgroundColor);
+                newBox.Inflate(1f,-1f);
+                Graphics.DrawFrame(newBox, 1, Settings.BorderColor);
+            }
         }
 
-        private void RenderMenu()
+        public static string ToKMB(decimal num)
         {
-            var idPop = 1;
-            if (!Settings.ShowWindow) return;
-            ImGuiExtension.BeginWindow($"{PluginName} Settings", Settings.LastSettingPos.X, Settings.LastSettingPos.Y, Settings.LastSettingSize.X, Settings.LastSettingSize.Y);
-
-            // Storing window Position and Size changed by the user
-            if (ImGui.GetWindowHeight() > 21)
-            {
-                Settings.LastSettingPos = ImGui.GetWindowPosition();
-                Settings.LastSettingSize = ImGui.GetWindowSize();
-            }
-
-            ImGui.EndWindow();
+            if (num > 999999999) return num.ToString("0,,,.###B", CultureInfo.InvariantCulture);
+            if (num > 999999) return num.ToString("0,,.##M", CultureInfo.InvariantCulture);
+            if (num > 999) return num.ToString("0,.#K", CultureInfo.InvariantCulture);
+            return num.ToString("0.#", CultureInfo.InvariantCulture);
         }
     }
 }

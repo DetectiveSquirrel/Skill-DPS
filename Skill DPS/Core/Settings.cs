@@ -1,23 +1,21 @@
 ﻿using PoeHUD.Hud.Settings;
 using PoeHUD.Plugins;
-using ImGuiVector2 = System.Numerics.Vector2;
+using SharpDX;
 
-namespace Test_Environment.Core
+namespace Skill_DPS.Core
 {
     public class Settings : SettingsBase
     {
-        public Settings()
-        {
-            ShowWindow = false;
-            var centerPos = BasePlugin.API.GameController.Window.GetWindowRectangle().Center;
-            LastSettingSize = new ImGuiVector2(620, 376);
-            LastSettingPos = new ImGuiVector2(centerPos.X - LastSettingSize.X / 2, centerPos.Y - LastSettingSize.Y / 2);
-        }
+        [Menu("Font Size")]
+        public RangeNode<int> FontSize { get; set; } = new RangeNode<int>(15, 1, 50);
 
-        [Menu("Show ImGui Settings")]
-        public ToggleNode ShowWindow { get; set; }
+        [Menu("Font Color")]
+        public ColorNode FontColor { get; set; } = new Color(216, 216, 216, 255);
 
-        public ImGuiVector2 LastSettingPos { get; set; }
-        public ImGuiVector2 LastSettingSize { get; set; }
+        [Menu("Background Color")]
+        public ColorNode BackgroundColor { get; set; } = new Color(0, 0, 0, 255);
+
+        [Menu("Border Color")]
+        public ColorNode BorderColor { get; set; } = new Color(146, 107, 43, 255);
     }
 }
