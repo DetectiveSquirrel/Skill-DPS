@@ -41,7 +41,6 @@ namespace Skill_DPS.Core
                         new Vector2(newBox.Center.X, newBox.Center.Y - Settings.FontSize / 2),
                         Settings.FontColor, FontDrawFlags.Center);
                 Graphics.DrawBox(newBox, Settings.BackgroundColor);
-                newBox.Inflate(1f,-1f);
                 Graphics.DrawFrame(newBox, 1, Settings.BorderColor);
             }
         }
