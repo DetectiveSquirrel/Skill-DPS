@@ -17,5 +17,8 @@ namespace Skill_DPS.Core
 
         [Menu("Border Color")]
         public ColorNode BorderColor { get; set; } = new Color(146, 107, 43, 255);
+
+        [Menu("DPS x # of Projectiles")]
+        public ToggleNode XProjectileCount { get; set; } = false;
     }
 }

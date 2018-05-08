@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using PoeHUD.Plugins;
 using PoeHUD.Poe;
 using PoeHUD.Poe.Components;
@@ -13,8 +12,9 @@ namespace Skill_DPS.Skill_Data
 
         public static List<Data> CurrentSkills()
         {
-            List<Data> ReturnSkills = new List<Data>();
             List<ushort> ids = CurrentIDS();
+            List<Data> ReturnSkills = new List<Data>();
+            if (ids == null) return ReturnSkills;
             for (int index = 0; index < ids.Count; index++)
             {
                 ushort @ushort = ids[index];
@@ -31,10 +31,11 @@ namespace Skill_DPS.Skill_Data
 
         public static ActorSkill GetSkill(ushort ID)
         {
-            foreach (ActorSkill actorSkill in BasePlugin.API.GameController.Player.GetComponent<Actor>().ActorSkills)
+            List<ActorSkill> ActorSkills = BasePlugin.API.GameController.Player.GetComponent<Actor>()?.ActorSkills;
+            if (ActorSkills == null) return null;
+            foreach (ActorSkill actorSkill in ActorSkills)
             {
                 if (actorSkill.Id != ID) continue;
-
                 return actorSkill;
             }
 

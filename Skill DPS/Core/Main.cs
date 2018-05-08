@@ -25,6 +25,7 @@ namespace Skill_DPS.Core
                 RectangleF newBox = new RectangleF(box.X, box.Y - 2, box.Width, -15);
 
                 int value = -1;
+                int projectileCount = 1;
 
                 if (HoverUI.GetClientRect().Intersects(newBox) && HoverUI.IsVisibleLocal) continue;
 
@@ -34,9 +35,13 @@ namespace Skill_DPS.Core
                 else if (skill.Skill.Stats.TryGetValue(GameStat.HundredTimesAverageDamagePerHit, out int return2))
                     value = return2;
 
+                if (Settings.XProjectileCount)
+                if (skill.Skill.Stats.TryGetValue(GameStat.NumberOfAdditionalProjectiles, out int OutProjCount))
+                    projectileCount = OutProjCount;
+
                 if (value <= 0) continue;
 
-                Graphics.DrawText(ToKMB(Convert.ToDecimal(value / (decimal) 100)),
+                Graphics.DrawText(ToKMB(Convert.ToDecimal((value / (decimal) 100) * projectileCount)),
                         Settings.FontSize,
                         new Vector2(newBox.Center.X, newBox.Center.Y - Settings.FontSize / 2),
                         Settings.FontColor, FontDrawFlags.Center);
