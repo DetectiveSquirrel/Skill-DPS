@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using PoeHUD.Models.Enums;
 using PoeHUD.Plugins;
@@ -18,35 +19,52 @@ namespace Skill_DPS.Core
         public override void Render()
         {
             base.Render();
+            if (GameController.Game.IsGameLoading) return;
+
             Element HoverUI = GameController.Game.IngameState.UIHoverTooltip.Tooltip;
-            foreach (SkillBar.Data skill in SkillBar.CurrentSkills())
+            if (HoverUI != null)
             {
-                RectangleF box = skill.SkillElement.GetClientRect();
-                RectangleF newBox = new RectangleF(box.X, box.Y - 2, box.Width, -15);
+                foreach (SkillBar.Data skill in SkillBar.CurrentSkills())
+                {
+                    if (skill != null)
+                    {
+                        RectangleF box = skill.SkillElement.GetClientRect();
+                        RectangleF newBox = new RectangleF(box.X, box.Y - 2, box.Width, -15);
 
-                int value = -1;
-                int projectileCount = 1;
+                        int Value = -1;
+                        int Projectiles = 1;
+                        Dictionary<GameStat, int> Stats = skill.SkillStats;
 
-                if (HoverUI.GetClientRect().Intersects(newBox) && HoverUI.IsVisibleLocal) continue;
+                        if (!HoverUI.GetClientRect().Intersects(newBox) || !HoverUI.IsVisibleLocal)
+                        {
+                            if (Stats != null && Stats.TryGetValue(GameStat.HundredTimesDamagePerSecond, out int HTDPS))
+                            {
+                                Value = HTDPS;
+                            }
+                            else if (Stats != null && Stats.TryGetValue(GameStat.HundredTimesAverageDamagePerHit, out int HTADPS))
+                            {
+                                Value = HTADPS;
+                            }
 
-                if (skill.Skill.Stats.TryGetValue(GameStat.HundredTimesDamagePerSecond, out int @return))
-                    value = @return;
+                            if (Settings.XProjectileCount)
+                            {
+                                if (Stats != null && Stats.TryGetValue(GameStat.NumberOfAdditionalProjectiles, out int NOAP))
+                                {
+                                    Projectiles = NOAP;
+                                }
+                            }
 
-                else if (skill.Skill.Stats.TryGetValue(GameStat.HundredTimesAverageDamagePerHit, out int return2))
-                    value = return2;
-
-                if (Settings.XProjectileCount)
-                if (skill.Skill.Stats.TryGetValue(GameStat.NumberOfAdditionalProjectiles, out int OutProjCount))
-                    projectileCount = OutProjCount;
-
-                if (value <= 0) continue;
-
-                Graphics.DrawText(ToKMB(Convert.ToDecimal((value / (decimal) 100) * projectileCount)),
-                        Settings.FontSize,
-                        new Vector2(newBox.Center.X, newBox.Center.Y - Settings.FontSize / 2),
-                        Settings.FontColor, FontDrawFlags.Center);
-                Graphics.DrawBox(newBox, Settings.BackgroundColor);
-                Graphics.DrawFrame(newBox, 1, Settings.BorderColor);
+                            if (Value > 0)
+                            {
+                                string text = ToKMB(Convert.ToDecimal(Value / (decimal) 100 * Projectiles));
+                                Vector2 position = new Vector2(newBox.Center.X, newBox.Center.Y - Settings.FontSize / 2);
+                                Graphics.DrawText(text, Settings.FontSize, position, Settings.FontColor, FontDrawFlags.Center);
+                                Graphics.DrawBox(newBox, Settings.BackgroundColor);
+                                Graphics.DrawFrame(newBox, 1, Settings.BorderColor);
+                            }
+                        }
+                    }
+                }
             }
         }
 
