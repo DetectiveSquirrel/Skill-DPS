@@ -20,5 +20,8 @@ namespace Skill_DPS.Core
 
         [Menu("DPS x # of Projectiles")]
         public ToggleNode XProjectileCount { get; set; } = false;
+
+        [Menu("Update Interval (ms)")]
+        public RangeNode<int> UpdateInterval { get; set; } = new RangeNode<int>(500, 1, 2000);
     }
 }

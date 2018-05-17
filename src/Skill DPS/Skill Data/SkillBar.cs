@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using PoeHUD.Models.Enums;
 using PoeHUD.Plugins;
 using PoeHUD.Poe;
@@ -13,25 +14,35 @@ namespace Skill_DPS.Skill_Data
 
         public static List<Data> CurrentSkills()
         {
-            List<ushort> ids = CurrentIDS();
             List<Data> ReturnSkills = new List<Data>();
-            if (ids == null)
+            try
             {
-                return ReturnSkills;
-            }
-
-            for (int index = 0; index < ids.Count; index++)
-            {
-                if (GetSkill(ids[index]) != null)
+                List<ushort> ids = CurrentIDS();
+                if (ids == null) return ReturnSkills;
+                if (ids.Count > 100)
                 {
-                    var Skill = GetSkill(ids[index]);
+                    BasePlugin.API.LogError("CurrentIDS.Count > 500", 10);
+                    return ReturnSkills;
+                }
+                //BasePlugin.API.LogError($"ids Count: {ids.Count}", 10);
+
+                for (int index = 0; index < ids.Count; index++)
+                {
+                    if (GetSkill(ids[index]) == null) continue;
+
+                    ActorSkill Skill = GetSkill(ids[index]);
+
                     ReturnSkills.Add(new Data
                     {
                             Skill = Skill,
-                            SkillStats = GetSkillStats(Skill),
+                            SkillStats = Skill.Stats,
                             SkillElement = BasePlugin.API.GameController.Game.IngameState.IngameUi.SkillBar.Children[index]
                     });
                 }
+            }
+            catch (Exception e)
+            {
+                BasePlugin.API.LogError(e, 10);
             }
 
             return ReturnSkills;
@@ -39,16 +50,20 @@ namespace Skill_DPS.Skill_Data
 
         public static ActorSkill GetSkill(ushort ID)
         {
-            List<ActorSkill> ActorSkills = BasePlugin.API.GameController.Player.GetComponent<Actor>().ActorSkills;
-            if (ActorSkills != null)
+            try
             {
-                foreach (ActorSkill actorSkill in ActorSkills)
+                List<ActorSkill> ActorSkills = BasePlugin.API.GameController.Player.GetComponent<Actor>().ActorSkills;
+                if (ActorSkills != null)
                 {
-                    if (actorSkill != null && actorSkill.Id == ID)
+                    foreach (ActorSkill skill in ActorSkills)
                     {
-                        return actorSkill;
+                        if (skill.Id == ID) return skill;
                     }
                 }
+            }
+            catch (Exception e)
+            {
+                BasePlugin.API.LogError(e, 10);
             }
 
             return null;

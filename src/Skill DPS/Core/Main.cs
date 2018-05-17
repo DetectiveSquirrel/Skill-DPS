@@ -1,6 +1,10 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
+using PoeHUD.Framework;
+using PoeHUD.Framework.Helpers;
 using PoeHUD.Models.Enums;
 using PoeHUD.Plugins;
 using PoeHUD.Poe;
@@ -12,67 +16,129 @@ namespace Skill_DPS.Core
 {
     public class Main : BaseSettingsPlugin<Settings>
     {
-        public Main() => PluginName = "Skill DPS";
+        private readonly Stopwatch UpdateTick = Stopwatch.StartNew();
 
-        public override void Initialise() { }
+        private List<SkillBar.Data> SkillCache = new List<SkillBar.Data>();
+
+        private bool RenderStuff = true;
+
+
+        public Main()
+        {
+            PluginName = "Skill DPS";
+            GameController.Area.OnAreaChange += area => AreaChange();
+        }
+
+        public override void Initialise()
+        {
+        }
 
         public override void Render()
         {
             base.Render();
-            if (GameController.Game.IsGameLoading) return;
+            if (!RenderStuff) return;
 
-            Element HoverUI = GameController.Game.IngameState.UIHoverTooltip.Tooltip;
-            if (HoverUI != null)
+            ShowDPS();
+        }
+
+        private void AreaChange()
+        {
+            RenderStuff = false;
+            new Coroutine(PauseRender(), nameof(Main), "Render Pause").Run();
+            RenderStuff = true;
+        }
+
+        private IEnumerator PauseRender()
+        {
+            yield return new WaitFunction(() => GameController.Game.IsGameLoading);
+        }
+
+        private void ShowDPS()
+        {
+            try
             {
-                foreach (SkillBar.Data skill in SkillBar.CurrentSkills())
+
+                if (UpdateTick.ElapsedMilliseconds > Settings.UpdateInterval)
                 {
-                    if (skill != null)
+                    SkillCache = SkillBar.CurrentSkills();
+                    UpdateTick.Restart();
+                }
+
+                Element HoverUI = GameController.Game.IngameState.UIHoverTooltip.Tooltip;
+                if (HoverUI == null) return;
+                foreach (SkillBar.Data skill in SkillCache)
+                {
+                    if (skill == null)
                     {
-                        RectangleF box = skill.SkillElement.GetClientRect();
-                        RectangleF newBox = new RectangleF(box.X, box.Y - 2, box.Width, -15);
+                        continue;
+                    }
 
-                        int Value = -1;
-                        int Projectiles = 1;
-                        Dictionary<GameStat, int> Stats = skill.SkillStats;
+                    RectangleF box = skill.SkillElement.GetClientRect();
+                    RectangleF newBox = new RectangleF(box.X, box.Y - 2, box.Width, -15);
+                    int Value = -1;
+                    int Projectiles = 1;
 
-                        if (!HoverUI.GetClientRect().Intersects(newBox) || !HoverUI.IsVisibleLocal)
-                        {
-                            if (Stats != null && Stats.TryGetValue(GameStat.HundredTimesDamagePerSecond, out int HTDPS))
-                            {
-                                Value = HTDPS;
-                            }
-                            else if (Stats != null && Stats.TryGetValue(GameStat.HundredTimesAverageDamagePerHit, out int HTADPS))
-                            {
-                                Value = HTADPS;
-                            }
+                    if (HoverUI.GetClientRect().Intersects(newBox) && HoverUI.IsVisibleLocal)
+                    {
+                        continue;
+                    }
 
-                            if (Settings.XProjectileCount)
-                            {
-                                if (Stats != null && Stats.TryGetValue(GameStat.NumberOfAdditionalProjectiles, out int NOAP))
-                                {
-                                    Projectiles = NOAP;
-                                }
-                            }
+                    if (skill.SkillStats != null)
+                    {
+                        if (TryGetStat(GameStat.HundredTimesDamagePerSecond, skill.SkillStats) > 0)
+                            Value = TryGetStat(GameStat.HundredTimesDamagePerSecond, skill.SkillStats);
 
-                            if (Value > 0)
-                            {
-                                string text = ToKMB(Convert.ToDecimal(Value / (decimal) 100 * Projectiles));
-                                Vector2 position = new Vector2(newBox.Center.X, newBox.Center.Y - Settings.FontSize / 2);
-                                Graphics.DrawText(text, Settings.FontSize, position, Settings.FontColor, FontDrawFlags.Center);
-                                Graphics.DrawBox(newBox, Settings.BackgroundColor);
-                                Graphics.DrawFrame(newBox, 1, Settings.BorderColor);
-                            }
-                        }
+                        else if (TryGetStat(GameStat.HundredTimesAverageDamagePerHit, skill.SkillStats) > 0)
+                            Value = TryGetStat(GameStat.HundredTimesAverageDamagePerHit, skill.SkillStats);
+                    }
+
+                    //if (Settings.XProjectileCount)
+                    //{
+                    //    if (Stats != null && Stats.TryGetValue(GameStat.NumberOfAdditionalProjectiles, out int NOAP))
+                    //    {
+                    //        Projectiles = NOAP;
+                    //    }
+                    //}
+
+                    //LogMessage($"Skill: {skill.Skill.Id}, value: {Value}, stat: {TryGetStat(GameStat.HundredTimesAverageDamagePerHit, skill.SkillStats)}", 1);
+                    //Graphics.DrawFrame(box, 1, Color.Red);
+
+                    if (Value > 0)
+                    {
+                        var textValue = Value / 100;
+                        string text = ToKMB(textValue);
+                        //string text = ToKMB(Convert.ToDecimal(Value / (decimal) 100 * Projectiles));
+                        Vector2 position = new Vector2(newBox.Center.X, newBox.Center.Y - Settings.FontSize / 2);
+                        Graphics.DrawText(text, Settings.FontSize, position, Settings.FontColor, FontDrawFlags.Center);
+                        Graphics.DrawBox(newBox, Settings.BackgroundColor);
+                        Graphics.DrawFrame(newBox, 1, Settings.BorderColor);
                     }
                 }
             }
+            catch (Exception e)
+            {
+                LogError(e, 10);
+            }
+        }
+        private int TryGetStat(GameStat stat, Dictionary<GameStat, int> statList)
+        {
+            return statList.TryGetValue(stat, out int statInt) ? statInt : 0;
         }
 
-        public static string ToKMB(decimal num)
+        public static string ToKMB(int num)
         {
-            if (num > 999999999) return num.ToString("0,,,.###B", CultureInfo.InvariantCulture);
-            if (num > 999999) return num.ToString("0,,.##M", CultureInfo.InvariantCulture);
-            if (num > 999) return num.ToString("0,.#K", CultureInfo.InvariantCulture);
+            try
+            {
+                if (num > 999999999) return num.ToString("0,,,.###B", CultureInfo.InvariantCulture);
+                if (num > 999999) return num.ToString("0,,.##M", CultureInfo.InvariantCulture);
+                if (num > 999) return num.ToString("0,.#K", CultureInfo.InvariantCulture);
+                return num.ToString("0.#", CultureInfo.InvariantCulture);
+            }
+            catch (Exception e)
+            {
+                LogError(e, 10);
+            }
+
             return num.ToString("0.#", CultureInfo.InvariantCulture);
         }
     }
