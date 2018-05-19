@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using PoeHUD.Framework;
-using PoeHUD.Framework.Helpers;
 using PoeHUD.Models.Enums;
 using PoeHUD.Plugins;
 using PoeHUD.Poe;
@@ -18,15 +17,15 @@ namespace Skill_DPS.Core
     {
         private readonly Stopwatch UpdateTick = Stopwatch.StartNew();
 
-        private List<SkillBar.Data> SkillCache = new List<SkillBar.Data>();
 
-        private bool RenderStuff = true;
+        private readonly bool RenderStuff = true;
+
+        private List<SkillBar.Data> SkillCache = new List<SkillBar.Data>();
 
 
         public Main()
         {
             PluginName = "Skill DPS";
-            GameController.Area.OnAreaChange += area => AreaChange();
         }
 
         public override void Initialise()
@@ -38,14 +37,7 @@ namespace Skill_DPS.Core
             base.Render();
             if (!RenderStuff) return;
 
-            ShowDPS();
-        }
-
-        private void AreaChange()
-        {
-            RenderStuff = false;
-            new Coroutine(PauseRender(), nameof(Main), "Render Pause").Run();
-            RenderStuff = true;
+            ShowDps();
         }
 
         private IEnumerator PauseRender()
@@ -53,13 +45,32 @@ namespace Skill_DPS.Core
             yield return new WaitFunction(() => GameController.Game.IsGameLoading);
         }
 
-        private void ShowDPS()
+        public bool CanTick()
+        {
+            if (GameController.IsLoading)
+                return false;
+            if (!GameController.Game.IngameState.ServerData.IsInGame)
+                return false;
+            if (GameController.Player == null || GameController.Player.Address == 0 || !GameController.Player.IsValid)
+                return false;
+            if (!GameController.Window.IsForeground())
+                return false;
+            //else if (Core.Cache.InTown)
+            //{
+            //    //TreeRoutine.LogMessage("Player is in town.", 0.2f);
+            //    return false;
+            //}
+            return true;
+        }
+
+        private void ShowDps()
         {
             try
             {
-
                 if (UpdateTick.ElapsedMilliseconds > Settings.UpdateInterval)
                 {
+                    if (!CanTick())
+                        return;
                     SkillCache = SkillBar.CurrentSkills();
                     UpdateTick.Restart();
                 }
@@ -69,28 +80,22 @@ namespace Skill_DPS.Core
                 foreach (SkillBar.Data skill in SkillCache)
                 {
                     if (skill == null)
-                    {
                         continue;
-                    }
 
                     RectangleF box = skill.SkillElement.GetClientRect();
                     RectangleF newBox = new RectangleF(box.X, box.Y - 2, box.Width, -15);
-                    int Value = -1;
+                    int value = -1;
                     int Projectiles = 1;
 
                     if (HoverUI.GetClientRect().Intersects(newBox) && HoverUI.IsVisibleLocal)
-                    {
                         continue;
-                    }
 
                     if (skill.SkillStats != null)
-                    {
                         if (TryGetStat(GameStat.HundredTimesDamagePerSecond, skill.SkillStats) > 0)
-                            Value = TryGetStat(GameStat.HundredTimesDamagePerSecond, skill.SkillStats);
+                            value = TryGetStat(GameStat.HundredTimesDamagePerSecond, skill.SkillStats);
 
                         else if (TryGetStat(GameStat.HundredTimesAverageDamagePerHit, skill.SkillStats) > 0)
-                            Value = TryGetStat(GameStat.HundredTimesAverageDamagePerHit, skill.SkillStats);
-                    }
+                            value = TryGetStat(GameStat.HundredTimesAverageDamagePerHit, skill.SkillStats);
 
                     //if (Settings.XProjectileCount)
                     //{
@@ -103,16 +108,15 @@ namespace Skill_DPS.Core
                     //LogMessage($"Skill: {skill.Skill.Id}, value: {Value}, stat: {TryGetStat(GameStat.HundredTimesAverageDamagePerHit, skill.SkillStats)}", 1);
                     //Graphics.DrawFrame(box, 1, Color.Red);
 
-                    if (Value > 0)
-                    {
-                        var textValue = Value / 100;
-                        string text = ToKMB(textValue);
-                        //string text = ToKMB(Convert.ToDecimal(Value / (decimal) 100 * Projectiles));
-                        Vector2 position = new Vector2(newBox.Center.X, newBox.Center.Y - Settings.FontSize / 2);
-                        Graphics.DrawText(text, Settings.FontSize, position, Settings.FontColor, FontDrawFlags.Center);
-                        Graphics.DrawBox(newBox, Settings.BackgroundColor);
-                        Graphics.DrawFrame(newBox, 1, Settings.BorderColor);
-                    }
+                    if (value <= 0) continue;
+
+                    int textValue = value / 100;
+                    string text = ToKMB(textValue);
+                    //string text = ToKMB(Convert.ToDecimal(Value / (decimal) 100 * Projectiles));
+                    Vector2 position = new Vector2(newBox.Center.X, newBox.Center.Y - Settings.FontSize / 2);
+                    Graphics.DrawText(text, Settings.FontSize, position, Settings.FontColor, FontDrawFlags.Center);
+                    Graphics.DrawBox(newBox, Settings.BackgroundColor);
+                    Graphics.DrawFrame(newBox, 1, Settings.BorderColor);
                 }
             }
             catch (Exception e)
@@ -120,6 +124,7 @@ namespace Skill_DPS.Core
                 LogError(e, 10);
             }
         }
+
         private int TryGetStat(GameStat stat, Dictionary<GameStat, int> statList)
         {
             return statList.TryGetValue(stat, out int statInt) ? statInt : 0;
