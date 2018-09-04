@@ -75,8 +75,8 @@ namespace Skill_DPS.Core
                     UpdateTick.Restart();
                 }
 
-                Element HoverUI = GameController.Game.IngameState.UIHoverTooltip.Tooltip;
-                if (HoverUI == null) return;
+                Element HoverUI = GameController.Game.IngameState.UIHover.Tooltip;
+                if (HoverUI.Address == null) return;
                 foreach (SkillBar.Data skill in SkillCache)
                 {
                     if (skill == null)
@@ -86,16 +86,17 @@ namespace Skill_DPS.Core
                     RectangleF newBox = new RectangleF(box.X, box.Y - 2, box.Width, -15);
                     int value = -1;
                     int Projectiles = 1;
-
-                    if (HoverUI.GetClientRect().Intersects(newBox) && HoverUI.IsVisibleLocal)
+                    
+                    if (HoverUI.GetClientRect().Intersects(newBox) && HoverUI.IsVisible)
                         continue;
 
+                    // TODO: Get new GameStats dict
                     if (skill.SkillStats != null)
-                        if (TryGetStat(GameStat.HundredTimesDamagePerSecond, skill.SkillStats) > 0)
-                            value = TryGetStat(GameStat.HundredTimesDamagePerSecond, skill.SkillStats);
+                        if (TryGetStat(GameStat.UniqueGainOnslaughtWhenHitDurationMs, skill.SkillStats) > 0)
+                            value = TryGetStat(GameStat.UniqueGainOnslaughtWhenHitDurationMs, skill.SkillStats);
 
-                        else if (TryGetStat(GameStat.HundredTimesAverageDamagePerHit, skill.SkillStats) > 0)
-                            value = TryGetStat(GameStat.HundredTimesAverageDamagePerHit, skill.SkillStats);
+                        else if (TryGetStat(GameStat.HundredTimesAverageDamagePerSkillUse, skill.SkillStats) > 0)
+                            value = TryGetStat(GameStat.HundredTimesAverageDamagePerSkillUse, skill.SkillStats);
 
                     //if (Settings.XProjectileCount)
                     //{
