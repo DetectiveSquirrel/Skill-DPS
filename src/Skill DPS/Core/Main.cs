@@ -89,11 +89,10 @@ namespace Skill_DPS.Core
                     
                     if (HoverUI.GetClientRect().Intersects(newBox) && HoverUI.IsVisible)
                         continue;
-
-                    // TODO: Get new GameStats dict
+                    
                     if (skill.SkillStats != null)
-                        if (TryGetStat(GameStat.UniqueGainOnslaughtWhenHitDurationMs, skill.SkillStats) > 0)
-                            value = TryGetStat(GameStat.UniqueGainOnslaughtWhenHitDurationMs, skill.SkillStats);
+                        if (TryGetStat(GameStat.HundredTimesAttacksPerSecond, skill.SkillStats) > 0)
+                            value = TryGetStat(GameStat.HundredTimesAttacksPerSecond, skill.SkillStats);
 
                         else if (TryGetStat(GameStat.HundredTimesAverageDamagePerSkillUse, skill.SkillStats) > 0)
                             value = TryGetStat(GameStat.HundredTimesAverageDamagePerSkillUse, skill.SkillStats);
