@@ -91,8 +91,8 @@ namespace Skill_DPS.Core
                         continue;
                     
                     if (skill.SkillStats != null)
-                        if (TryGetStat(GameStat.HundredTimesAttacksPerSecond, skill.SkillStats) > 0)
-                            value = TryGetStat(GameStat.HundredTimesAttacksPerSecond, skill.SkillStats);
+                        if (TryGetStat(GameStat.HundredTimesDamagePerSecond, skill.SkillStats) > 0)
+                            value = TryGetStat(GameStat.HundredTimesDamagePerSecond, skill.SkillStats);
 
                         else if (TryGetStat(GameStat.HundredTimesAverageDamagePerSkillUse, skill.SkillStats) > 0)
                             value = TryGetStat(GameStat.HundredTimesAverageDamagePerSkillUse, skill.SkillStats);
