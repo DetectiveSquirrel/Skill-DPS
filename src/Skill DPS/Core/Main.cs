@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using PoeHUD.Framework;
 using PoeHUD.Models.Enums;
 using PoeHUD.Plugins;
@@ -13,6 +14,20 @@ using Skill_DPS.Skill_Data;
 
 namespace Skill_DPS.Core
 {
+
+    public class StoredSkillData
+    {
+        public ushort SkillID;
+        public int HighestDamage;
+
+        public StoredSkillData(ushort skillid, int highestdamage)
+        {
+            SkillID = skillid;
+            HighestDamage = highestdamage;
+        }
+    }
+
+
     public class Main : BaseSettingsPlugin<Settings>
     {
         private readonly Stopwatch UpdateTick = Stopwatch.StartNew();
@@ -21,6 +36,7 @@ namespace Skill_DPS.Core
         private readonly bool RenderStuff = true;
 
         private List<SkillBar.Data> SkillCache = new List<SkillBar.Data>();
+        private List<StoredSkillData> TopSkillIDDamage = new List<StoredSkillData>();
 
 
         public Main()
@@ -31,12 +47,17 @@ namespace Skill_DPS.Core
         public override void Initialise()
         {
         }
+        
 
         public override void Render()
         {
             base.Render();
             if (!RenderStuff) return;
 
+            if (Settings.ClearCachedDPS.PressedOnce())
+            {
+                TopSkillIDDamage.Clear();
+            }
             ShowDps();
         }
 
@@ -117,6 +138,40 @@ namespace Skill_DPS.Core
                     Graphics.DrawText(text, Settings.FontSize, position, Settings.FontColor, FontDrawFlags.Center);
                     Graphics.DrawBox(newBox, Settings.BackgroundColor);
                     Graphics.DrawFrame(newBox, 1, Settings.BorderColor);
+
+
+                    if (Settings.EnableCachedDPS)
+                    {
+                        bool containsItem = TopSkillIDDamage.Any(item => item.SkillID == skill.Skill.Id);
+                        var highestDPS = 0;
+
+                        if (!containsItem)
+                        {
+                            TopSkillIDDamage.Add(new StoredSkillData(skill.Skill.Id, value));
+                        }
+                        else
+                        {
+                            foreach (var data in TopSkillIDDamage)
+                            {
+                                if (data.SkillID == skill.Skill.Id)
+                                {
+                                    if (data.HighestDamage < value)
+                                        data.HighestDamage = value;
+
+                                    highestDPS = data.HighestDamage;
+                                }
+                            }
+                        }
+
+                        RectangleF TOP_newBox = new RectangleF(box.X, box.Y - 2 - 15, box.Width, -15);
+                        int TOP_textValue = highestDPS / 100;
+                        string TOP_text = ToKMB(TOP_textValue);
+                        //string text = ToKMB(Convert.ToDecimal(Value / (decimal) 100 * Projectiles));
+                        Vector2 TOP_position = new Vector2(newBox.Center.X, newBox.Center.Y - 15 - Settings.FontSize / 2);
+                        Graphics.DrawText(TOP_text, Settings.FontSize, TOP_position, Settings.HighestDPSFontColor, FontDrawFlags.Center);
+                        Graphics.DrawBox(TOP_newBox, Settings.BackgroundColor);
+                        Graphics.DrawFrame(TOP_newBox, 1, Settings.BorderColor);
+                    }
                 }
             }
             catch (Exception e)

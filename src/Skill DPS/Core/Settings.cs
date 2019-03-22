@@ -1,4 +1,5 @@
-﻿using PoeHUD.Hud.Settings;
+﻿using System.Windows.Forms;
+using PoeHUD.Hud.Settings;
 using PoeHUD.Plugins;
 using SharpDX;
 
@@ -12,6 +13,9 @@ namespace Skill_DPS.Core
         [Menu("Font Color")]
         public ColorNode FontColor { get; set; } = new Color(216, 216, 216, 255);
 
+        [Menu("Highest DPS Font Color")]
+        public ColorNode HighestDPSFontColor { get; set; } = new Color(216, 216, 216, 255);
+
         [Menu("Background Color")]
         public ColorNode BackgroundColor { get; set; } = new Color(0, 0, 0, 255);
 
@@ -23,5 +27,11 @@ namespace Skill_DPS.Core
 
         [Menu("Update Interval (ms)")]
         public RangeNode<int> UpdateInterval { get; set; } = new RangeNode<int>(500, 1, 2000);
+
+        [Menu("Store Highest DPS Per Skill")]
+        public ToggleNode EnableCachedDPS { get; set; } = true;
+
+        [Menu("Button To CLear Highested Stored DPS")]
+        public HotkeyNode ClearCachedDPS { get; set; } = Keys.PageDown;
     }
 }
