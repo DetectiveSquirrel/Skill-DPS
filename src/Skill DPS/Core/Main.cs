@@ -11,18 +11,18 @@ using PoeHUD.Poe;
 using SharpDX;
 using SharpDX.Direct3D9;
 using Skill_DPS.Skill_Data;
+// ReSharper disable All
 
 namespace Skill_DPS.Core
 {
-
     public class StoredSkillData
     {
-        public ushort SkillID;
+        public ushort SkillId;
         public int HighestDamage;
 
         public StoredSkillData(ushort skillid, int highestdamage)
         {
-            SkillID = skillid;
+            SkillId = skillid;
             HighestDamage = highestdamage;
         }
     }
@@ -30,13 +30,13 @@ namespace Skill_DPS.Core
 
     public class Main : BaseSettingsPlugin<Settings>
     {
-        private readonly Stopwatch UpdateTick = Stopwatch.StartNew();
+        private readonly Stopwatch _updateTick = Stopwatch.StartNew();
 
 
-        private readonly bool RenderStuff = true;
+        private readonly bool _renderStuff = true;
 
-        private List<SkillBar.Data> SkillCache = new List<SkillBar.Data>();
-        private List<StoredSkillData> TopSkillIDDamage = new List<StoredSkillData>();
+        private List<SkillBar.Data> _skillCache = new List<SkillBar.Data>();
+        private List<StoredSkillData> _topSkillIdDamage = new List<StoredSkillData>();
 
 
         public Main()
@@ -47,17 +47,14 @@ namespace Skill_DPS.Core
         public override void Initialise()
         {
         }
-        
+
 
         public override void Render()
         {
             base.Render();
-            if (!RenderStuff) return;
+            if (!_renderStuff) return;
 
-            if (Settings.ClearCachedDPS.PressedOnce())
-            {
-                TopSkillIDDamage.Clear();
-            }
+            if (Settings.ClearCachedDps.PressedOnce()) _topSkillIdDamage.Clear();
             ShowDps();
         }
 
@@ -88,35 +85,42 @@ namespace Skill_DPS.Core
         {
             try
             {
-                if (UpdateTick.ElapsedMilliseconds > Settings.UpdateInterval)
+                if (_updateTick.ElapsedMilliseconds > Settings.UpdateInterval)
                 {
                     if (!CanTick())
                         return;
-                    SkillCache = SkillBar.CurrentSkills();
-                    UpdateTick.Restart();
+                    _skillCache = SkillBar.CurrentSkills();
+                    _updateTick.Restart();
                 }
 
-                Element HoverUI = GameController.Game.IngameState.UIHover.Tooltip;
-                if (HoverUI.Address == null) return;
-                foreach (SkillBar.Data skill in SkillCache)
+                var hoverUi = GameController.Game.IngameState.UIHover.Tooltip;
+                if (hoverUi.Address == null) return;
+                foreach (var skill in _skillCache)
                 {
                     if (skill == null)
                         continue;
 
-                    RectangleF box = skill.SkillElement.GetClientRect();
-                    RectangleF newBox = new RectangleF(box.X, box.Y - 2, box.Width, -15);
-                    int value = -1;
-                    int Projectiles = 1;
-                    
-                    if (HoverUI.GetClientRect().Intersects(newBox) && HoverUI.IsVisible)
-                        continue;
-                    
-                    if (skill.SkillStats != null)
-                        if (TryGetStat(GameStat.HundredTimesDamagePerSecond, skill.SkillStats) > 0)
-                            value = TryGetStat(GameStat.HundredTimesDamagePerSecond, skill.SkillStats);
+                    var box = skill.SkillElement.GetClientRect();
+                    var newBox = new RectangleF(box.X, box.Y - 2, box.Width, -15);
+                    var value = -1;
+                    var projectiles = 1;
 
-                        else if (TryGetStat(GameStat.HundredTimesAverageDamagePerSkillUse, skill.SkillStats) > 0)
-                            value = TryGetStat(GameStat.HundredTimesAverageDamagePerSkillUse, skill.SkillStats);
+                    if (hoverUi.GetClientRect().Intersects(newBox) && hoverUi.IsVisible)
+                        continue;
+
+                    if (skill.SkillStats != null)
+                    {
+
+                        value = (int)skill.Skill.Dps;
+                        if (value <= 0)
+                        {
+                            if (TryGetStat(GameStat.HundredTimesAverageDamagePerHit, skill.SkillStats) > 0)
+                                value = TryGetStat(GameStat.HundredTimesAverageDamagePerHit, skill.SkillStats) / 100;
+
+                            else if (TryGetStat(GameStat.HundredTimesAverageDamagePerSkillUse, skill.SkillStats) > 0)
+                                value = TryGetStat(GameStat.HundredTimesAverageDamagePerSkillUse, skill.SkillStats) / 100;
+                        }
+                    }
 
                     //if (Settings.XProjectileCount)
                     //{
@@ -130,62 +134,53 @@ namespace Skill_DPS.Core
                     //Graphics.DrawFrame(box, 1, Color.Red);
 
                     if (value <= 0) continue;
-
-                    int textValue = value / 100;
-                    string text = ToKMB(textValue);
+                    var text = ToKmb(value);
                     //string text = ToKMB(Convert.ToDecimal(Value / (decimal) 100 * Projectiles));
-                    Vector2 position = new Vector2(newBox.Center.X, newBox.Center.Y - Settings.FontSize / 2);
+                    var position = new Vector2(newBox.Center.X, newBox.Center.Y - Settings.FontSize / 2);
                     Graphics.DrawText(text, Settings.FontSize, position, Settings.FontColor, FontDrawFlags.Center);
                     Graphics.DrawBox(newBox, Settings.BackgroundColor);
                     Graphics.DrawFrame(newBox, 1, Settings.BorderColor);
 
 
-                    if (Settings.EnableCachedDPS)
+                    if (Settings.EnableCachedDps)
                     {
-                        bool containsItem = TopSkillIDDamage.Any(item => item.SkillID == skill.Skill.Id);
-                        var highestDPS = 0;
+                        var containsItem = _topSkillIdDamage.Any(item => item.SkillId == skill.Skill.Id);
+                        var highestDps = 0;
 
                         if (!containsItem)
-                        {
-                            TopSkillIDDamage.Add(new StoredSkillData(skill.Skill.Id, value));
-                        }
+                            _topSkillIdDamage.Add(new StoredSkillData(skill.Skill.Id, value));
                         else
-                        {
-                            foreach (var data in TopSkillIDDamage)
-                            {
-                                if (data.SkillID == skill.Skill.Id)
+                            foreach (var data in _topSkillIdDamage)
+                                if (data.SkillId == skill.Skill.Id)
                                 {
                                     if (data.HighestDamage < value)
                                         data.HighestDamage = value;
 
-                                    highestDPS = data.HighestDamage;
+                                    highestDps = data.HighestDamage;
                                 }
-                            }
-                        }
 
-                        RectangleF TOP_newBox = new RectangleF(box.X, box.Y - 2 - 15, box.Width, -15);
-                        int TOP_textValue = highestDPS / 100;
-                        string TOP_text = ToKMB(TOP_textValue);
+                        var topNewBox = new RectangleF(box.X, box.Y - 2 - 15, box.Width, -15);
+                        var topText = ToKmb(highestDps);
                         //string text = ToKMB(Convert.ToDecimal(Value / (decimal) 100 * Projectiles));
-                        Vector2 TOP_position = new Vector2(newBox.Center.X, newBox.Center.Y - 15 - Settings.FontSize / 2);
-                        Graphics.DrawText(TOP_text, Settings.FontSize, TOP_position, Settings.HighestDPSFontColor, FontDrawFlags.Center);
-                        Graphics.DrawBox(TOP_newBox, Settings.BackgroundColor);
-                        Graphics.DrawFrame(TOP_newBox, 1, Settings.BorderColor);
+                        var topPosition = new Vector2(newBox.Center.X, newBox.Center.Y - 15 - Settings.FontSize / 2);
+                        Graphics.DrawText(topText, Settings.FontSize, topPosition, Settings.HighestDpsFontColor, FontDrawFlags.Center);
+                        Graphics.DrawBox(topNewBox, Settings.BackgroundColor);
+                        Graphics.DrawFrame(topNewBox, 1, Settings.BorderColor);
                     }
                 }
             }
             catch (Exception e)
             {
-                LogError(e, 10);
+                //LogError(e, 10);
             }
         }
 
         private int TryGetStat(GameStat stat, Dictionary<GameStat, int> statList)
         {
-            return statList.TryGetValue(stat, out int statInt) ? statInt : 0;
+            return statList.TryGetValue(stat, out var statInt) ? statInt : 0;
         }
 
-        public static string ToKMB(int num)
+        public static string ToKmb(int num)
         {
             try
             {

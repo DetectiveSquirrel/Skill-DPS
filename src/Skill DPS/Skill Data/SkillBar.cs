@@ -10,19 +10,19 @@ namespace Skill_DPS.Skill_Data
 {
     public class SkillBar
     {
-        public static List<ushort> CurrentIDS() => BasePlugin.API.GameController.Game.IngameState.ServerData.SkillBarIds;
+        public static List<ushort> CurrentIds() => BasePlugin.API.GameController.Game.IngameState.ServerData.SkillBarIds;
 
         public static List<Data> CurrentSkills()
         {
-            List<Data> ReturnSkills = new List<Data>();
+            List<Data> returnSkills = new List<Data>();
             try
             {
-                List<ushort> ids = CurrentIDS();
-                if (ids == null) return ReturnSkills;
+                List<ushort> ids = CurrentIds();
+                if (ids == null) return returnSkills;
                 if (ids.Count > 100)
                 {
                     BasePlugin.API.LogError("CurrentIDS.Count > 500", 10);
-                    return ReturnSkills;
+                    return returnSkills;
                 }
                 //BasePlugin.API.LogError($"ids Count: {ids.Count}", 10);
 
@@ -30,12 +30,12 @@ namespace Skill_DPS.Skill_Data
                 {
                     if (GetSkill(ids[index]) == null) continue;
 
-                    ActorSkill Skill = GetSkill(ids[index]);
+                    ActorSkill skill = GetSkill(ids[index]);
 
-                    ReturnSkills.Add(new Data
+                    returnSkills.Add(new Data
                     {
-                            Skill = Skill,
-                            SkillStats = Skill.Stats,
+                            Skill = skill,
+                            SkillStats = skill.Stats,
                             SkillElement = BasePlugin.API.GameController.Game.IngameState.IngameUi.SkillBar.Children[index]
                     });
                 }
@@ -45,19 +45,19 @@ namespace Skill_DPS.Skill_Data
                 BasePlugin.API.LogError(e, 10);
             }
 
-            return ReturnSkills;
+            return returnSkills;
         }
 
-        public static ActorSkill GetSkill(ushort ID)
+        public static ActorSkill GetSkill(ushort id)
         {
             try
             {
-                List<ActorSkill> ActorSkills = BasePlugin.API.GameController.Player.GetComponent<Actor>().ActorSkills;
-                if (ActorSkills != null)
+                List<ActorSkill> actorSkills = BasePlugin.API.GameController.Player.GetComponent<Actor>().ActorSkills;
+                if (actorSkills != null)
                 {
-                    foreach (ActorSkill skill in ActorSkills)
+                    foreach (ActorSkill skill in actorSkills)
                     {
-                        if (skill.Id == ID) return skill;
+                        if (skill.Id == id) return skill;
                     }
                 }
             }
